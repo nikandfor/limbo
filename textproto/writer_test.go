@@ -12,10 +12,10 @@ func TestWriter(t *testing.T) {
 
 	w := NewWriter(&buf)
 
-	err := w.WritePair([]byte("key"), []byte("value"))
+	err := w.Pair([]byte("key"), []byte("value"))
 	assert.NoError(t, err)
 
-	err = w.WritePairStrings("complex-key", `long value
+	err = w.PairStrings("complex-key", `long value
 multiple
 	lines`)
 	assert.NoError(t, err)

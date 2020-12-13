@@ -1,11 +1,16 @@
 package textproto
 
-import "io"
+import (
+	"errors"
+	"io"
+)
 
 type (
 	Writer struct {
 		w io.Writer
 		b []byte
+
+		state byte
 	}
 )
 
@@ -15,16 +20,16 @@ func NewWriter(w io.Writer) *Writer {
 	}
 }
 
-func (w *Writer) WritePairStrings(k, v string) (err error) {
+func (w *Writer) KeyString(k string) (err error) {
+	if w.state != 0 {
+		return errors.New("key is not expected")
+	}
+
 	st := 0
 
 	addk := func(i int) {
 		w.b = append(w.b, toUpper(k[st]))
 		w.b = append(w.b, k[st+1:i]...)
-	}
-
-	addv := func(i int) {
-		w.b = append(w.b, v[st:i]...)
 	}
 
 	for i := 0; i < len(k); {
@@ -42,7 +47,21 @@ func (w *Writer) WritePairStrings(k, v string) (err error) {
 
 	w.b = append(w.b, ':', ' ')
 
-	st = 0
+	w.state = 'v'
+
+	return nil
+}
+
+func (w *Writer) ValueString(v string) (err error) {
+	if w.state != 'v' {
+		return errors.New("value is not expected")
+	}
+
+	st := 0
+
+	addv := func(i int) {
+		w.b = append(w.b, v[st:i]...)
+	}
 
 	for i := 0; i < len(v); {
 		switch v[i] {
@@ -68,10 +87,33 @@ func (w *Writer) WritePairStrings(k, v string) (err error) {
 	_, err = w.w.Write(w.b)
 
 	w.b = w.b[:0]
+	w.state = 0
 
-	return
+	return nil
 }
 
-func (w *Writer) WritePair(k, v []byte) error {
-	return w.WritePairStrings(bytesToString(k), bytesToString(v))
+func (w *Writer) Key(k []byte) error {
+	return w.KeyString(bytesToString(k))
+}
+
+func (w *Writer) Value(v []byte) error {
+	return w.ValueString(bytesToString(v))
+}
+
+func (w *Writer) PairStrings(k, v string) (err error) {
+	err = w.KeyString(k)
+	if err != nil {
+		return err
+	}
+
+	err = w.ValueString(v)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (w *Writer) Pair(k, v []byte) error {
+	return w.PairStrings(bytesToString(k), bytesToString(v))
 }

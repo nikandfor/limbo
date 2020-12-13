@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 
+	"github.com/nikandfor/loc"
 	"github.com/nikandfor/tlog"
 )
 
@@ -20,7 +21,7 @@ type (
 	}
 )
 
-var tl *tlog.Logger
+var tl *tlog.Logger //= tlog.DefaultLogger
 
 func NewReader(r io.Reader) *Reader {
 	return &Reader{
@@ -53,6 +54,8 @@ func (r *Reader) Next() bool {
 			r.val = append(r.val, '\n')
 		}
 
+		tl.Printf("addpend val %x %x  %.10q  from %v", vst, i, b[vst:i], loc.Callers(1, 3))
+
 		r.val = append(r.val, b[vst:i]...)
 	}
 
@@ -76,7 +79,9 @@ more:
 	switch {
 	case err == nil:
 	case err == io.EOF && n == 0 && i == r.read:
-		addv(i)
+		if state == 'v' {
+			addv(i)
+		}
 
 		state = 'e'
 		err = nil
